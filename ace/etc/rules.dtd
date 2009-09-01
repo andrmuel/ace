@@ -1,0 +1,196 @@
+<!-- root element -->
+<!ELEMENT rules (group*)>
+
+<!-- level 1: groups -->
+<!ELEMENT group (rule+)>                
+<!ATTLIST group
+    name            CDATA   #REQUIRED
+    order           CDATA   #REQUIRED
+    description     CDATA   #IMPLIED
+    >
+
+<!-- level 2: rules -->
+<!ELEMENT rule (events,conditions?,actions,alternative_actions?)>
+<!ATTLIST rule
+    name            CDATA   #REQUIRED
+    order           CDATA   #REQUIRED
+    description     CDATA   #IMPLIED
+    >
+
+<!-- level 3: ECAA -->
+<!-- events (rule triggers) -->
+<!ELEMENT events (when_class|when_event|when_any)*>
+<!-- conditions -->
+<!ENTITY % conditions "and|or|not|context|trigger_match|count|sequence|
+                       pattern|within|condition_plugin">
+<!ELEMENT conditions (%conditions;)*>
+<!-- actions (executed if conditions match) -->
+<!ENTITY % actions "drop|forward|compress|aggregate|modify|modify_attribute|
+                    suppress|associate_with_context|add_references|create|
+                    create_context|delete_context|modify_context|action_plugin">
+<!ELEMENT actions (subblock|select_events|%actions;)*>
+<!-- alternative_actions (executed if conditions do not match) -->
+<!ELEMENT alternative_actions (subblock|select_events|%actions;)*>
+
+<!-- level 4 and below -->
+
+<!-- events list -->
+<!ELEMENT when_class (#PCDATA)>     <!-- a class of events -->
+<!ATTLIST when_class type CDATA #IMPLIED>
+<!ELEMENT when_event (#PCDATA)>     <!-- an event --> 
+<!ATTLIST when_event type CDATA #IMPLIED>
+<!ELEMENT when_any EMPTY>           <!-- any event can trigger the rule -->
+<!ATTLIST when_any type CDATA #IMPLIED>
+
+<!-- conditions list -->
+<!-- boolean expression construction -->
+<!ELEMENT and (%conditions;)+>
+<!ELEMENT or (%conditions;)+>
+<!ELEMENT not (%conditions;)>
+<!-- conditions on contexts -->
+<!ELEMENT context (#PCDATA|trigger)*>
+<!ATTLIST context
+    counter     CDATA       #IMPLIED
+    counter_op  (ge|le|eq)  "ge"
+    group       CDATA       #IMPLIED
+    >
+<!-- conditions on the trigger -->
+<!ELEMENT trigger_match (event_class|event_name|event_type|event_status|
+                         event_host|event_attribute|event_min_age)*>
+<!-- conditions on events -->
+<!ELEMENT count (event_query)>
+<!ATTLIST count 
+    threshold   CDATA       #REQUIRED
+    op          (eq|ge|le)  "ge"
+    >
+<!ELEMENT sequence (event_query)+>
+<!ATTLIST sequence
+    sort_by     (creation|arrival)  "creation"
+    match       (any|all)           "all"
+    >
+<!ELEMENT pattern (alphabet,regexp)>
+<!ELEMENT alphabet (symbol)+>
+<!ATTLIST alphabet sort_by (creation|arrival) "creation">
+<!ELEMENT symbol (event_query)>
+<!ATTLIST symbol letter CDATA #REQUIRED>
+<!ELEMENT regexp (#PCDATA)>
+<!ELEMENT within (event_query)+>
+<!ATTLIST within
+    timeframe   CDATA   #REQUIRED
+    timeref     (creation|arrival)  "creation"
+    match       (any|all)           "all"
+    >
+<!ELEMENT condition_plugin (plugin_parameter*,event_query*)>
+<!ATTLIST condition_plugin name CDATA #REQUIRED>
+<!ELEMENT plugin_parameter (#PCDATA)>
+<!ATTLIST plugin_parameter name CDATA #REQUIRED>
+
+<!-- actions/alternative_actions list -->
+<!-- subblock (nested conditions-actions-alternative_actions block) -->
+<!ELEMENT subblock (conditions,actions,alternative_actions?)>
+<!-- event selection -->
+<!ELEMENT select_events ((event_query),(%actions;)*)>
+<!-- event operations -->
+<!ELEMENT drop EMPTY>           <!-- drop events -->
+<!ELEMENT forward EMPTY>        <!-- forward events -->
+<!ELEMENT compress EMPTY>       <!-- replace multiple events by a count -->
+<!ELEMENT aggregate (event)>    <!-- aggregate events -->
+<!ELEMENT modify EMPTY>         <!-- change the event's status/local field --> 
+<!ATTLIST modify
+    status  (active|inactive)   #IMPLIED
+    local   (true|false)        #IMPLIED
+    reason  CDATA               #IMPLIED
+    >
+<!ELEMENT modify_attribute (#PCDATA)> <!-- modify an event attribute -->
+<!ATTLIST modify_attribute
+    name    CDATA           #REQUIRED
+    reason  CDATA           #IMPLIED
+    op      (set|inc|dec)   "set"
+    >
+<!ELEMENT suppress (event_query)> <!-- supress the selected events -->
+<!ATTLIST suppress reason CDATA #IMPLIED>
+<!ELEMENT associate_with_context (#PCDATA|trigger)*>
+<!ELEMENT add_references (event_query)>
+<!ATTLIST add_references
+    type    (child|parent|cross)    "cross"
+    reason  CDATA                   #IMPLIED
+    >
+<!ELEMENT create (event)>       <!-- create a new event -->
+<!-- context operations -->
+<!ELEMENT create_context (context_name,event?)>
+<!ATTLIST create_context 
+    timeout            CDATA           #REQUIRED
+    counter            CDATA           #IMPLIED
+    repeat             (true|false)    "false"
+    delay_associated   (true|false)    "false"
+    >
+<!ELEMENT context_name (#PCDATA|trigger)*>
+<!ELEMENT delete_context (#PCDATA|trigger)*>
+<!ELEMENT modify_context (#PCDATA|trigger)*>
+<!ATTLIST modify_context
+    reset_timer             (true|false)    "false"
+    reset_associated_events (true|false)    "false"
+    counter_value           CDATA           #IMPLIED
+    counter_op              (set|inc|dec)   "set"
+    >
+<!-- action plugin -->
+<!ELEMENT action_plugin (plugin_parameter*)>
+<!ATTLIST action_plugin name CDATA #REQUIRED>
+<!-- trigger -->
+<!ELEMENT trigger EMPTY>
+<!ATTLIST trigger field CDATA #REQUIRED>
+
+<!-- event selection -->
+<!ENTITY % query_operations "intersection|union|complement|first_of|last_of|
+                             unique_by|is_trigger|in_context|match_query|
+                             event_class|event_name|event_type|event_status|
+                             event_host|event_attribute|event_min_age">
+<!ELEMENT event_query (%query_operations;)*>
+<!-- note: max_age is required in some cases, but not in others -->
+<!ATTLIST event_query
+    max_age         CDATA               #IMPLIED
+    delay           (true|false)        "false"
+    time_source     (creation|arrival)  "arrival"
+    name            CDATA               #IMPLIED
+    >
+<!ELEMENT intersection (%query_operations;)*>
+<!ELEMENT union (%query_operations;)*>
+<!ELEMENT complement (%query_operations;)>
+<!ELEMENT first_of (%query_operations;)>
+<!ATTLIST first_of sort_by (creation|arrival) "creation">
+<!ELEMENT last_of (%query_operations;)>
+<!ATTLIST last_of sort_by (creation|arrival) "creation">
+<!ELEMENT unique_by (%query_operations;)>
+<!ATTLIST unique_by
+    field   CDATA   #REQUIRED
+    sort_by (creation|arrival)  "creation"
+    keep    (first|last)        "last"
+    >
+<!ELEMENT is_trigger EMPTY>
+<!ELEMENT in_context (#PCDATA|trigger)*>
+<!ATTLIST in_context group CDATA #IMPLIED>
+<!ELEMENT match_query (#PCDATA)>
+<!ELEMENT event_class (#PCDATA)>
+<!ELEMENT event_name (#PCDATA)>
+<!ELEMENT event_type (#PCDATA)>
+<!ELEMENT event_status (#PCDATA)>
+<!ELEMENT event_host (#PCDATA|trigger)*>
+<!ELEMENT event_attribute (#PCDATA|trigger)*>
+<!ATTLIST event_attribute
+    name    CDATA           #REQUIRED
+    op      (eq|ge|le|re)   "eq"
+    regexp  CDATA           #IMPLIED
+    >
+<!ELEMENT event_min_age (#PCDATA)> <!-- age at arrival -->
+
+<!-- event specification -->
+<!ELEMENT event (name,description?,attribute*)>
+<!ATTLIST event
+    status      (active|inactive)   "active"
+    local       (true|false)        "true"
+    inject      (input|output)      "input"
+    >
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT description (#PCDATA|trigger)*>
+<!ELEMENT attribute (#PCDATA|trigger)*>
+<!ATTLIST attribute name CDATA #REQUIRED>

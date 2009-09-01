@@ -1,0 +1,28 @@
+<!-- root element: list of matches -->
+<!ELEMENT translation_linebased (match)*>
+
+<!-- level 1: match -->
+<!ELEMENT match (match|description|host|attribute|datetime|create|drop)*>
+<!ATTLIST match regexp CDATA #REQUIRED>
+
+<!-- level 2: match element -->
+<!-- event description -->
+<!ELEMENT description (#PCDATA|matchgroup)*>
+<!ELEMENT host (#PCDATA|matchgroup)*>
+<!ELEMENT attribute (#PCDATA|matchgroup)*>
+<!ATTLIST attribute name CDATA #REQUIRED>
+<!ELEMENT datetime (#PCDATA|matchgroup)*>
+<!ATTLIST datetime 
+    format              CDATA           #REQUIRED
+    use_current_year    (true|false)    "false"
+    >
+<!-- actions -->
+<!ELEMENT create (#PCDATA)>
+<!ATTLIST create status (active|inactive) "active">
+<!ELEMENT drop EMPTY>
+
+<!-- level 3: matchgroup -->
+<!ELEMENT matchgroup EMPTY>
+<!ATTLIST matchgroup 
+    group CDATA #REQUIRED
+    >

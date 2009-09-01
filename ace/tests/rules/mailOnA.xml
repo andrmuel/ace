@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rules SYSTEM "rules.dtd">
+
+<rules>
+	<group name="mailaction" order="1">
+		<rule name="mailaction" order="1">
+			<events>
+				<when_event>A</when_event>
+			</events>
+			<conditions>
+			</conditions>
+			<actions>
+				<action_plugin name="mailevents">
+					<plugin_parameter name="from">ace@localhost</plugin_parameter>
+					<plugin_parameter name="to">root@localhost</plugin_parameter>
+					<plugin_parameter name="subject">Events from CE</plugin_parameter>
+					<plugin_parameter name="text">Event from the correlation engine:</plugin_parameter>
+				</action_plugin>
+			</actions>
+		</rule>
+	</group>
+</rules>
+

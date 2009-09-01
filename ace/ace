@@ -1,0 +1,105 @@
+#!/usr/bin/python
+# coding: utf8
+#
+# Andreas Müller, 2009
+# andrmuel@ee.ethz.ch
+#
+# This code may be freely used under GNU GPL conditions.
+
+"""
+The main script, which starts the Master process.
+"""
+
+# Note: this script can also be placed outside of the main module.
+
+import sys
+import traceback
+import syslog
+from optparse import OptionParser
+
+import ace.master
+from ace.util.configuration import Config
+
+def exit_error(message, printhelp=False, retval=1):
+	"""
+	Exit with the given message and return value; print help if requested.
+	"""
+	print(message)
+	if printhelp:
+		parser.print_help()
+		sys.exit(retval)
+
+if __name__ == '__main__':
+	# parse options
+	parser = OptionParser(usage="usage: %prog [options]")
+	parser.add_option("-c", "--config-file", dest="configfile", help="read configuration from FILE [default: "+Config.configfile+" if available, built-in defaults otherwise]", metavar="FILE", default=None)
+	parser.add_option("-C", "--print-config-template", action="store_true", dest="configtemplate", help="print a template for the configuration file")
+	parser.add_option("-d", "--daemon", action="store_true", dest="daemon", help="run as daemon (default: run in foreground)")
+	parser.add_option("-r", "--rule-source", dest="rule_source", help="source of correlation rules (default: %s)" % Config.rulesource, metavar="RULESOURCE")
+	parser.add_option("-R", "--rpc-server", dest="rpc_server", action="store_true", help="start RPC server for remote control (default: don't start)")
+	parser.add_option("-v", "--verbose", action="count", dest="verbose", help="be verbose about what's going on (can be used multiple times for greater effect; use at least twice to enable stack traces)")
+	parser.add_option("-p", "--start-python", action="store_true", dest="python", help="start interactive Python console for debugging (default: don't start)")
+	parser.add_option("-i", "--start-ipython", action="store_true", dest="ipython", help="start interactive IPython console for debugging (default: don't start)")
+	parser.add_option("-P", "--profile", dest="profile", help="run cProfile for speed profiling and store its output into FILE (default: don't run cProfile)", metavar="FILE", default=None)
+	(options, args) = parser.parse_args()
+	if options.daemon and (options.python or options.ipython):
+		exit_error("Can't start console when running as daemon.\n", printhelp=True)
+	if options.daemon and options.profile:
+		exit_error("Please run profiler in non-daemon mode.\n", printhelp=True)
+	if options.python and options.ipython:
+		exit_error("Can only start either IPython or Python console.\n", printhelp=True)
+	if options.configtemplate:
+		config = Config()
+		print(config.configTemplate())
+		sys.exit(0)
+	# start master
+	config = Config(options.configfile,
+	                daemon=options.daemon,
+	                rulesource=options.rule_source,
+	                rpcserver=options.rpc_server,
+	                python_console=options.python,
+	                ipython_console=options.ipython,
+	                verbose=options.verbose)
+	# run master - either as daemon or directly		
+	if config.daemon:
+		try:
+			import daemon
+			import lockfile
+		except ImportError as e:
+			exit_error("Can't import required modules daemon "\
+			          +"(http://pypi.python.org/pypi/python-daemon/) and lockfile "\
+			          +"(http://pypi.python.org/pypi/lockfile/) for daemon mode "\
+			          +"(try without -d).")
+		pidfile = lockfile.FileLock(config.lockfile, threaded=False)
+		try:
+			pidfile.acquire(timeout=0)
+		except lockfile.AlreadyLocked:
+			exit_error("Lockfile '%s' already locked." % pidfile.lock_file)
+		except lockfile.LockFailed:
+			exit_error("Locking of '%s' failed (permissions?)." % pidfile.lock_file)
+		with daemon.DaemonContext(signal_map={}) as context:
+			try:
+				master = ace.master.Master(config)
+				master.run()
+			except:
+				syslog.openlog(config.logident, syslog.LOG_PID, syslog.LOG_DAEMON)
+				syslog.syslog(syslog.LOG_ERR, "Unexpected error: %s: %s"
+				                              % (sys.exc_info()[0], sys.exc_info()[1]))
+				syslog.closelog()
+		pidfile.release()
+	else:
+		master = ace.master.Master(config)
+		if options.profile != None:
+			import cProfile
+			import pstats
+			cProfile.run("master.run()", options.profile)
+			stats = pstats.Stats(options.profile)
+			stats.sort_stats('cumulative').print_callees(10)
+		else:
+			try:
+				master.run()
+			except:
+				if config.verbosity >= 5:
+					traceback.print_tb(sys.exc_info()[2])
+				sys.stderr.write("%s: %s\n" % (sys.exc_info()[0].__name__, sys.exc_info()[1]))
+				sys.exit(1)

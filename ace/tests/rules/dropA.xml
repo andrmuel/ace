@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rules SYSTEM "rules.dtd">
+
+<rules>
+	<group name="filtering" order="1">
+		<rule name="filter-event-A" order="1" description="This rule drops all events, which have either 'A' or 'MAIL:FRESHCLAM:ERROR' as name.">
+			<events>
+				<when_event>A</when_event>
+				<when_event>MAIL:FRESHCLAM:ERROR</when_event>
+			</events>
+			<conditions>
+			</conditions>
+			<actions>
+				<!-- <drop/> -->
+				<modify status="inactive"/>
+			</actions>
+		</rule>
+	</group>
+</rules>
+

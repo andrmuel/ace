@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rules SYSTEM "rules.dtd">
+
+<rules>
+	<group name="compression" order="1">
+		<rule name="compress" order="1">
+			<events>
+				<when_event>MAIL:FRESHCLAM:ERROR</when_event>
+			</events>
+			<conditions>
+			</conditions>
+			<actions>
+				<select_events>
+					<event_query max_age="5m">
+						<event_name>MAIL:FRESHCLAM:ERROR</event_name>
+					</event_query>
+					<compress/>
+				</select_events>
+			</actions>
+		</rule>
+	</group>
+</rules>
+

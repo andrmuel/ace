@@ -1,0 +1,4 @@
+Jun 15 09:50:33 server-002 sshd[4620]: Failed password for root from 10.0.2.68 port 52361 ssh2
+Jun 15 09:50:35 server-002 sshd[4620]: Accepted password for root from 10.0.15.18 port 52411 ssh2
+Jun 15 09:50:33 server-002 sshd[4620]: Should not match
+FOO: someline: should be caught be the catch-all match

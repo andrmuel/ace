@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- Tested with Firefox and built for demonstration purposes only! May be buggy. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title>Event sink</title>
+	<meta name="description" content="Event sink for ace events.">
+	<meta name="keywords" content="sink">
+	<meta name="author" content="Andreas Müller">
+	<meta name="generator" content="Vim">
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<meta http-equiv="content-language" content="en">
+	<link href="style.css" rel="stylesheet" type="text/css" media="screen"/>
+	<style type="text/css">
+		tr { color: black; }
+		tr.inactive { background-color: #A0A0A0; }
+		tr.raw { background-color: #A0A0FF; }
+		tr.compressed { background-color: #A0FFA0; }
+		tr.aggregated { background-color: #FFFFA0; }
+		tr.synthetic { background-color: #FFA0FF; }
+		tr.timeout { background-color: #A0FFFF; }
+		tr.internal { background-color: #FFA0A0; }
+		tr th { padding: .3em 1.5em; color: white; background-color: #8080FF; }
+		tr td { padding: .3em 1.5em; }
+		#tooltip {
+			padding: 5px 10px;
+			background: #cad7e0;
+			border: 1px solid #b2bdc3;
+			opacity: 0.90;
+		}
+	</style>
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.hoverbox.js"></script>
+	<link href="jquery.treeTable.css" rel="stylesheet" type="text/css"/>
+	<script type="text/javascript" src="jquery.treeTable.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function()  {
+		  $("#eventtable").treeTable();
+		});
+	</script>
+	<script type="text/javascript">
+		var event_count = 0;
+		var event_count_active = 0;
+		var event_count_compressed = 0;
+		var fields = ["name", "type", "status", "host", "description"];
+		function getNewData() {
+			self.request = new XMLHttpRequest();
+			self.request.open('POST', "events.py", true);
+			self.request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+			self.request.onreadystatechange = function() {
+				if (self.request.readyState == 4) {
+					updateContent(self.request.responseText);
+				}
+			}
+			self.request.send("");
+		}
+		function updateContent(data) {
+			try {
+				events = eval(data);
+			} catch(e) {
+				alert(data);
+			}
+			if (events) {
+				event_count += events.length;
+				for (var i = 0; i < events.length; i++) {
+					// compressed events count
+					if (events[i]['type'] == 'compressed')
+						event_count_compressed += parseInt(events[i]['count']);
+					else
+						event_count_compressed++;
+					// new table row
+					row = document.createElement("tr");
+					for (var j in fields) {
+						td = document.createElement("td");
+						if (events[i][fields[j]])
+							td.appendChild(document.createTextNode(events[i][fields[j]]));
+						else
+							td.appendChild(document.createTextNode("n/a"));
+						row.appendChild(td);
+					}
+					// tooltip
+					var tooltip = "<strong>Description:</strong> "+events[i]['description']+"<br/>"+
+					              "<strong>Type:</strong> "+events[i]['type']+"<br/>"+
+					              "<strong>Count:</strong> "+events[i]['count']+"<br/>"+
+					              "<strong>Status:</strong> "+events[i]['status']+"<br/>"+
+					              "<strong>Host:</strong> "+events[i]['host']+"<br/>"+
+					              "<strong>Timestamp:</strong> "+events[i]['creation']+"<br/>";
+					if (events[i]['attributes'] != undefined) {
+						for (var attribute in events[i]['attributes']) 
+							tooltip += "<strong>Attribute '"+attribute+"':</strong> "+events[i]['attributes'][attribute]+"<br/>";
+					}
+					if (events[i]['history'] != undefined) {
+						for (var entry in events[i]['history']) 
+							tooltip += "<strong>History ["+events[i]['history'][entry]['fields']+"]:</strong> "+events[i]['history'][entry]['reason']+"<br/>";
+					}
+					if (events[i]['references'] != undefined) {
+						for (var type in events[i]['references']) 
+							for (var j=0; j<events[i]['references'][type].length; j++)
+								tooltip += "<strong>Reference ["+type+"]:</strong> "+events[i]['references'][type][j]+"<br/>";
+					}
+					$(row).attr("title", tooltip);
+					$(row).hoverbox();
+					// id
+					$(row).attr("id", events[i]['id']);
+					// additional classes
+					if (events[i]['status'] == 'active') { 
+						$(row).addClass(events[i]['type']);
+						event_count_active += 1;
+					} else {
+						$(row).addClass(events[i]['status']);
+						if ($("#cb_inactive")[0].checked)
+							row.setAttribute("style", "");
+						else
+							row.setAttribute("style", "display:none");
+					}
+					// insert at right place (rudimentary - still has some problems ..)
+					row_inserted = false;
+					if (events[i]['references'] != undefined) {
+						if (events[i]['references']['parent'] != undefined) {
+							if (events[i]['references']['parent'].length > 0) {
+								parentid = events[i]['references']['parent'][0];
+								$(row).addClass("child-of-"+parentid);
+								parent_ = $("#"+parentid);
+								if (parent_.length == 1) { // insert after first parent
+									$(parent_).removeClass("initialized");
+									$(row).insertAfter($(parent_[0]));
+									row_inserted = true;
+								}
+							}
+						}
+						if (events[i]['references']['child'] != undefined) {
+							if (events[i]['references']['child'].length > 0) {
+								for (var j=0; j<events[i]['references']['child'].length; j++)
+									$("#"+events[i]['references']['child'][j]).addClass("child-of-"+events[i]['id']);
+							}
+						}
+					}
+					children = $("tr.child-of-"+events[i]['id']);
+					if (row_inserted == false && children.length > 0) {
+						$(children[0]).removeClass("initialized");
+						$(row).insertBefore($(children[0])); // insert before first child
+						row_inserted = true;
+					}
+					for (var j=0; j<children.length; j++) {
+						$(children[j]).insertAfter(row);
+						childrenschildren = $("tr.child-of-"+$(children[j]).attr("id"));
+						for (var k=0; k<childrenschildren.length; k++)
+							$(childrenschildren[k]).insertAfter(children[j]);
+					}
+					if (row_inserted == false)
+						$("#eventtablebody").append(row);
+				}
+				if (events.length > 0)
+					$("#eventtable").treeTable();
+				// status
+				$("#eventcount").text(event_count);
+				$("#eventcount_active").text(event_count_active);
+				$("#eventcount_compressed").text(event_count_compressed);
+			}
+			window.setTimeout("getNewData()", 1500);
+		}
+		function setShowClass(class_, checkbox_id) { 
+			if ($("#"+checkbox_id)[0].checked)
+				$("#eventtablebody > tr."+class_).show();
+			else
+				$("#eventtablebody > tr."+class_).hide();
+		}
+	</script>	
+</head>
+<body onload="getNewData()">
+	<div id="wrapper">
+		<!-- begin logo -->
+		<div id="logo">
+			<h1><a href="#">ace</a></h1>
+			<p><em>Web event sink</em></p>
+		</div>
+		<!-- end logo -->
+		<hr />
+		<!-- begin header -->
+		<div id="header">
+			<!-- begin menu -->
+			<div id="menu">
+				<ul>
+					<li><a href="#" class="first current_page_item">Home</a></li>
+					<!-- <li><a href="#">Contact</a></li> -->
+				</ul>
+			</div>
+			<!-- end menu -->
+		</div>
+		<!-- end header -->
+		<!-- begin page -->
+		<div id="page">
+		<div id="page-bgtop">
+			<!-- begin content -->
+			<div id="content">
+				<div class="post">
+					<h2 class="title">Events from ace</h2>
+					<div class="entry">
+						<table id="eventtable">
+							<thead id="eventtablehead">
+								<tr><th>Name</th><th>Type</th><th>Status</th><th>Host</th><th>Description</th></tr>
+							</thead>
+							<tbody id="eventtablebody">
+							</tbody>
+						</table>	
+					</div>
+				</div>
+			</div>
+			<!-- end content -->
+			<!-- begin sidebar -->
+			<div id="sidebar">
+				<ul>
+					<li>
+						<h2>Statistics</h2>
+						<ul>
+							<li>Number of events: <div id="eventcount">0</div></li>	
+							<li>Number of active events: <div id="eventcount_active">0</div></li>
+							<li>Number including compressed: <div id="eventcount_compressed">0</div></li>
+						</ul>
+					</li>
+					<li>
+						<h2>Control</h2>
+						<ul>
+							<li><input type="checkbox" id="cb_inactive" name="active" value="show_inactive" onchange="setShowClass('inactive', 'cb_inactive')" checked>Show inactive events</input></li>
+						</ul>
+					</li>
+					<li>
+						<h2>Legend</h2>
+						<table>
+							<tr class="raw"><td>raw</td></tr>
+							<tr class="compressed"><td>compressed</td></tr>
+							<tr class="aggregated"><td>aggregated</td></tr>
+							<tr class="synthetic"><td>synthetic</td></tr>
+							<tr class="timeout"><td>timeout</td></tr>
+							<tr class="internal"><td>internal</td></tr>
+							<tr class="inactive"><td>inactive</td></tr>
+						</table>	
+					</li>	
+				</ul>
+			</div>
+			<!-- end sidebar -->
+			<div style="clear: both;">&nbsp;</div>
+		</div>
+		</div>
+		<!-- end #page -->
+		<!-- begin footer -->
+		<div id="footer">
+			<p>Andreas Müller, 2009. Design by <a href="http://www.freecsstemplates.org/">Free CSS Templates</a>.</p>
+		</div>
+		<!-- end footer -->
+	</div>
+</body>
+</html>

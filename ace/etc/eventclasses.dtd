@@ -1,0 +1,9 @@
+<!-- root element -->
+<!ELEMENT eventclasses (eventclass*)>
+
+<!-- level 1: classes -->
+<!ELEMENT eventclass (eventname*)>                
+<!ATTLIST eventclass name CDATA #REQUIRED>
+
+<!-- level 2: rules -->
+<!ELEMENT eventname (#PCDATA)>

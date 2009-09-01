@@ -1,0 +1,37 @@
+<!-- root element: list of events -->
+<!ELEMENT events (event*)>
+
+<!-- level 1: event -->
+<!ELEMENT event (name,description,id,type,status,count?,host,creation,
+                 attributes?,references?,history?)>
+
+<!-- level 2 -->
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT id (#PCDATA)>
+<!ELEMENT type (#PCDATA)>
+<!ELEMENT status (#PCDATA)>
+<!ELEMENT count (#PCDATA)>
+<!ELEMENT host (#PCDATA)>
+<!ELEMENT creation (#PCDATA)>
+<!ELEMENT attributes (attribute)*>
+<!ELEMENT references (reference)*>
+<!ELEMENT history (historyentry)*>
+
+<!-- level 3 -->
+<!ELEMENT attribute (#PCDATA)>
+<!ATTLIST attribute key CDATA #REQUIRED>
+<!ELEMENT reference (#PCDATA)>
+<!ATTLIST reference type (parent|child|cross) #REQUIRED>
+<!ELEMENT historyentry (rule,host,timestamp,fields?,reason?)>
+
+<!-- level 4 -->
+<!ELEMENT rule (groupname,rulename)>
+<!ELEMENT timestamp (#PCDATA)>
+<!ELEMENT fields (field*)>
+<!ELEMENT reason (#PCDATA)>
+
+<!-- level 5 -->
+<!ELEMENT groupname (#PCDATA)>
+<!ELEMENT rulename (#PCDATA)>
+<!ELEMENT field (#PCDATA)>

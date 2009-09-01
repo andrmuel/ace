@@ -1,0 +1,8 @@
+This directory contains functional tests for the correlation engine.
+
+The numbering is as follows:
+
+0-99            core CE
+100-199         input and output translators
+200-299         condition and action plugins
+300-399         sources and sinks

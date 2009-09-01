@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE translation_linebased SYSTEM "translation_linebased.dtd">
+
+<translation_linebased>
+	<!-- SSHd log messages -->
+	<match regexp="^([^ ]+ \d{1,2} \d\d:\d\d:\d\d) ([^ ]+) sshd">
+		<datetime format="%b %d %H:%M:%S" use_current_year="true">
+			<matchgroup group="1"/>
+		</datetime>
+		<host><matchgroup group="2"/></host>
+		<match regexp="Failed password for ([^ ]+) from ([^ ]+)">
+			<attribute name="username"><matchgroup group="1"/></attribute>
+			<attribute name="srchost"><matchgroup group="2"/></attribute>
+			<description>An unsuccessful SSH login happened.</description>
+			<create>SSH:LOGIN:FAILED</create>
+		</match>
+		<match regexp="Accepted password for ([^ ]+) from ([^ ]+)">
+			<attribute name="username"><matchgroup group="1"/></attribute>
+			<attribute name="srchost"><matchgroup group="2"/></attribute>
+			<description>A successful SSH login happened.</description>
+			<create>SSH:LOGIN:SUCCESS</create>
+		</match>
+		<drop/>
+	</match>
+
+	<!-- catch all match that should be ignored -->
+	<match regexp=".*">
+		<attribute name="ignore1">test</attribute>
+	</match>
+
+	<!-- catch all match -->
+	<match regexp=".*">
+		<!-- another catch all match that should be ignored -->
+		<match regexp=".*">
+			<attribute name="ignore2">test</attribute>
+		</match>
+		<description>An unknown log message.</description>
+		<!-- match group 0 is the whole match: save it as attribute -->
+		<attribute name="logline"><matchgroup group="0"/></attribute>
+		<create>SYSLOG:UNKNOWN</create>
+	</match>
+</translation_linebased>

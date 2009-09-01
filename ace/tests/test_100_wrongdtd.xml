@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE events SYSTEM "events.dtd">
+<!-- some independent, fictional events -->
+<events>
+	<event>
+		<name>NIC:ETHERNET:LINKUP</name>
+		<description>The ethernet network internet controller is up.</description>
+		<id>e9294e806d02fd8ebd90e345434c16a3</id>
+		<type>raw</type>
+		<status>active</status>
+		<host>host-a-0</host>
+		<creation>1243039102</creation>
+		<attributes>
+			<attribute key="interface">1</attribute>
+		</attributes>
+	</event>
+	<event>
+		<name>MAIL:FRESHCLAM:ERROR</name>
+		<description>The anti-virus signatures could not be updated.</description>
+		<id>ae84e1e89470ddd1ecaf33ffb1b7538f</id>
+		<type>raw</type>
+		<status>inactive</status>
+		<host>host-b-0</host>
+		<creation>1244014810</creation>
+		<history>
+			<historyentry>
+				<rule>
+					<groupname>freshclam</groupname>
+					<rulename>detect-single-events</rulename>
+				</rule>
+				<host>host-b-0</host>
+				<timestamp>1244014940</timestamp>
+				<fields><field>status</field></fields>
+				<reason>Single errors can be ignored.</reason>
+			</historyentry>
+		</history>
+	</event>
+</events>
+
+<!--
+vim: sw=2 ts=2
+-->

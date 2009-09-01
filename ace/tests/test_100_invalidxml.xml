@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE translation_linebased SYSTEM "translation_linebased.dtd">
+
+<translation_linebased>
+	<match regexp="^([^ ]+ \d{1,2} \d\d:\d\d:\d\d) ([^ ]+) sshd">
+		<foo>
+		</foo>
+	</match>
+</translation_linebased>
+
